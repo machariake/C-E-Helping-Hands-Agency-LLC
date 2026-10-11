@@ -17,6 +17,7 @@ const port=Number(process.env.PORT||4173), host=isVercel?'0.0.0.0':'127.0.0.1';
 const read=()=>JSON.parse(fs.readFileSync(file,'utf8'));
 const save=async(p,value)=>{
  fs.writeFileSync(p+'.tmp',JSON.stringify(value,null,2));fs.renameSync(p+'.tmp',p);
+ lastDbSync=Date.now();
  const dbUrl=process.env.DATABASE_URL||process.env.POSTGRES_URL;if(!dbUrl)return;
  try{
   const {neon}=await import('@neondatabase/serverless');
@@ -27,10 +28,11 @@ const save=async(p,value)=>{
   else if(p===path.join(data,'account.json'))await sql`INSERT INTO ce_settings (key, data, updated_at) VALUES ('account', ${JSON.stringify(value)}::jsonb, NOW()) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`;
  }catch(err){console.error('[DB Save Error]',err.message);}
 };
-let syncedFromNeon=false;
-async function syncFromDb(){
+let lastDbSync=0;
+async function syncFromDb(force=false){
  const dbUrl=process.env.DATABASE_URL||process.env.POSTGRES_URL;if(!dbUrl)return;
- if(syncedFromNeon)return;
+ const now=Date.now();
+ if(!force&&(now-lastDbSync<3000))return;
  try{
   const {neon}=await import('@neondatabase/serverless');
   const sql=neon(dbUrl);
@@ -42,7 +44,7 @@ async function syncFromDb(){
   if(setRows.length>0&&setRows[0].data)fs.writeFileSync(path.join(data,'notifications.json'),JSON.stringify(setRows[0].data,null,2));
   const accRows=await sql`SELECT data FROM ce_settings WHERE key = 'account'`;
   if(accRows.length>0&&accRows[0].data)fs.writeFileSync(path.join(data,'account.json'),JSON.stringify(accRows[0].data,null,2));
-  syncedFromNeon=true;
+  lastDbSync=now;
  }catch(err){console.error('[DB Sync Error]',err.message);}
 }
 async function syncAccountFromDb(){
@@ -94,7 +96,7 @@ const server=http.createServer(async(req,res)=>{
  if(route.startsWith('/api/admin/')&&!auth.authorized(req))throw error('Please sign in to Admin.',401);
  if(await leads.handle(req,route,json))return;
  if(await handleExtras(req,res,route,json))return;
- if(route==='/api/admin/content'&&req.method==='PUT'){const c=validateContent(await body(req));save(file,c);return json({ok:true});}
+ if(route==='/api/admin/content'&&req.method==='PUT'){const c=validateContent(await body(req));await save(file,c);return json({ok:true});}
  if(route==='/api/admin/content'&&req.method==='GET')return json(read());
  if(route==='/api/admin/submissions'&&req.method==='GET'){const p=path.join(data,'submissions.json');return json(fs.existsSync(p)?JSON.parse(fs.readFileSync(p)):[]);}
  if(route==='/api/admin/upload'&&req.method==='POST'){
