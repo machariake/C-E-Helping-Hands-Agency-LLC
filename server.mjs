@@ -137,7 +137,7 @@ const server=http.createServer(async(req,res)=>{
  const types={'.js':'text/javascript','.css':'text/css','.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml','.ico':'image/x-icon'};
  res.setHeader('Content-Type',types[path.extname(candidate)]||'text/plain');return res.end(req.method==='HEAD'?'':fs.readFileSync(candidate));}
  const c=read(),meta=metadata(c,route),admin=route==='/admin';let html=fs.readFileSync(path.join(pub,admin?'admin.html':'index.html'),'utf8');
- const seo=pageSeo(c,route,meta);html=html.replaceAll('{{TITLE}}',esc(seo.title)).replaceAll('{{DESCRIPTION}}',esc(seo.description)).replace('{{EXTRA}}',admin?'':seoExtras(c,route,meta,req)).replace('{{CRAWL_BODY}}',crawlBody(c,route,meta));
+ const seo=pageSeo(c,route,meta);const initialData=admin?'':`<script>window.__INITIAL_CONTENT__=${JSON.stringify(c).replaceAll('<','\\u003c')};</script>`;html=html.replaceAll('{{TITLE}}',esc(seo.title)).replaceAll('{{DESCRIPTION}}',esc(seo.description)).replace('{{EXTRA}}',admin?'':seoExtras(c,route,meta,req)).replace('{{INITIAL_DATA}}',initialData).replace('{{CRAWL_BODY}}',crawlBody(c,route,meta));
  res.writeHead(admin||meta?200:404,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache'});res.end(req.method==='HEAD'?'':html);
  }catch(e){json({error:e.status?e.message:'Something went wrong. Please try again.'},e.status||500);}
 });

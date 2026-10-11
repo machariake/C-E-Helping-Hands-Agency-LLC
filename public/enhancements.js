@@ -23,11 +23,12 @@ function installExtras(){
  installLanguageSelector();
 }
 async function installLanguageSelector(){
- if(c.translation?.enabled===false)return;
- const holder=document.createElement('div');holder.className='language-control';holder.innerHTML='<label for="site-language">🌐 <span class="sr-only">Website language</span></label><select id="site-language" aria-label="Website language"><option value="en">English</option></select><span class="language-status" role="status" aria-live="polite"></span>';document.querySelector('.topbar .wrap')?.append(holder);const select=holder.querySelector('select'),status=holder.querySelector('.language-status');let config;
- try{const r=await fetch('/api/languages');config=await r.json();}catch{config={configured:false,languages:[]};}
+ if(!c.translation?.enabled)return;
+ let config;
+ try{const r=await fetch('/api/languages');config=await r.json();}catch{return;}
+ if(!config.configured||!config.languages||config.languages.length<2)return;
+ const holder=document.createElement('div');holder.className='language-control';holder.innerHTML='<label for="site-language">🌐 <span class="sr-only">Website language</span></label><select id="site-language" aria-label="Website language"></select><span class="language-status" role="status" aria-live="polite"></span>';document.querySelector('.topbar .wrap')?.append(holder);const select=holder.querySelector('select'),status=holder.querySelector('.language-status');
  const preferred=navigator.languages?.[0]||navigator.language||'en',requested=localStorage.getItem('ce-language')||preferred;const languages=config.languages||[];
- if(!config.configured){select.innerHTML='<option value="en">English</option><option value="request">Language assistance</option>';select.onchange=()=>{if(select.value==='request'){status.textContent='Please contact us for language assistance.';select.value='en';}};if(!requested.toLowerCase().startsWith('en'))status.textContent='Please contact us for language assistance.';return;}
  const names=new Intl.DisplayNames([preferred],{type:'language'});select.innerHTML=languages.map(l=>{let label=l.name;try{label=names.of(l.language)||label;}catch{}return `<option value="${e(l.language)}">${e(label)}</option>`;}).join('');select.value='en';
  document.querySelectorAll('option').forEach(o=>{if(!o.hasAttribute('value'))o.value=o.textContent;});
  const originalNodes=new Map(),attributes=[];const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let node;
