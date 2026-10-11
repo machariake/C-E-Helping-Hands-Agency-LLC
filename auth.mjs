@@ -22,7 +22,7 @@ export function createAuth({data,key,body,save,error,fetcher=fetch}){
   if(route==='/api/auth/logout'){sessions.delete(digest(token(req)));res.setHeader('Set-Cookie','ce_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');json({ok:true});return true;}
   limit(req,route,route.endsWith('forgot')?3:8);const b=await body(req);
   if(route==='/api/auth/setup'){
-   if(account()||!bootstrap(req))throw error('Open the Admin shortcut to authorize first-time setup.',403);
+   if(account()||!bootstrap(req))throw error('Account setup is not available.',403);
    const address=email(b.email);if(address.length>254||!/^\S+@\S+\.\S+$/.test(address))throw error('Enter a valid email address.');const hashed=await password(b.password);
    if(account())throw error('An account already exists.',409);save(file,{email:address,...hashed});sessions.clear();session(req,res);json({ok:true});return true;
   }
@@ -31,7 +31,7 @@ export function createAuth({data,key,body,save,error,fetcher=fetch}){
    if(!a||email(b.email)!==a.email||!equal(hashed.hash,a.hash))throw error('Email or password is incorrect.',401);session(req,res);json({ok:true});return true;
   }
   if(route==='/api/auth/forgot'){
-   const m=mailSettings();if(!m.apiKey||!m.from)throw error('Email recovery is not connected yet. Connect Resend in Admin before using password recovery.',503);
+   const m=mailSettings();if(!m.apiKey||!m.from)throw error('Password recovery is currently unavailable. Contact the site administrator.',503);
    const a=account();if(a&&email(b.email)===a.email){const reset=crypto.randomBytes(32).toString('hex');a.reset={hash:digest(reset),expires:Date.now()+15*60000};save(file,a);
     const link=`${req.socket.encrypted?'https':'http'}://${req.headers.host}/admin#reset=${reset}`;
     try{const r=await fetcher('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+m.apiKey,'Content-Type':'application/json'},body:JSON.stringify({from:m.from,to:[a.email],subject:'Reset your C&E Admin password',text:`Use this link within 15 minutes to reset your password:\n${link}\nIf you did not request this, ignore this email. For a local website, open the link on the computer running the site.`}),signal:AbortSignal.timeout(12000)});if(!r.ok)throw Error();}catch{const latest=account();if(latest?.reset?.hash===digest(reset)){delete latest.reset;save(file,latest);}}
