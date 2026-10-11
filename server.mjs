@@ -45,6 +45,15 @@ async function syncFromDb(){
   syncedFromNeon=true;
  }catch(err){console.error('[DB Sync Error]',err.message);}
 }
+async function syncAccountFromDb(){
+ const dbUrl=process.env.DATABASE_URL||process.env.POSTGRES_URL;if(!dbUrl)return;
+ try{
+  const {neon}=await import('@neondatabase/serverless');
+  const sql=neon(dbUrl);
+  const accRows=await sql`SELECT data FROM ce_settings WHERE key = 'account'`;
+  if(accRows.length>0&&accRows[0].data)fs.writeFileSync(path.join(data,'account.json'),JSON.stringify(accRows[0].data,null,2));
+ }catch(err){console.error('[Account Sync Error]',err.message);}
+}
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const error=(message,status=400)=>Object.assign(new Error(message),{status});
 const rates=new Map();
@@ -80,6 +89,7 @@ const server=http.createServer(async(req,res)=>{
  if(!isVercel&&![`localhost:${port}`,`127.0.0.1:${port}`].includes(req.headers.host))throw error('Unrecognized host.',403);
  if(!sameOrigin(req))throw error('This request must come from the website.',403);
  if(route==='/api/content'&&req.method==='GET')return json(read());
+ if(route.startsWith('/api/auth/'))await syncAccountFromDb();
  if(await auth.handle(req,res,route,json))return;
  if(route.startsWith('/api/admin/')&&!auth.authorized(req))throw error('Please sign in to Admin.',401);
  if(await leads.handle(req,route,json))return;
@@ -130,3 +140,4 @@ const server=http.createServer(async(req,res)=>{
  }catch(e){json({error:e.status?e.message:'Something went wrong. Please try again.'},e.status||500);}
 });
 server.listen(port,host,()=>console.log(`C&E website: http://localhost:${port}\nAdmin: use Open Admin.ps1 in your website folder.`));
+export default server;

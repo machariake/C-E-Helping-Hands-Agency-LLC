@@ -5,11 +5,9 @@ import {promisify} from 'node:util';
 const scrypt=promisify(crypto.scrypt),digest=s=>crypto.createHash('sha256').update(s).digest('hex');
 export function createAuth({data,key,body,save,error,fetcher=fetch}){
  const file=path.join(data,'account.json'),attempts=new Map();
- let memoryAccount=null;
  const account=()=>{
-  if(memoryAccount)return memoryAccount;
   if(fs.existsSync(file)){
-   try{memoryAccount=JSON.parse(fs.readFileSync(file,'utf8'));return memoryAccount;}catch{}
+   try{return JSON.parse(fs.readFileSync(file,'utf8'));}catch{}
   }
   return null;
  };
