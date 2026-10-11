@@ -6,8 +6,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import {fileURLToPath} from 'node:url';
-const root=path.dirname(fileURLToPath(import.meta.url)), data=path.join(root,'data'), pub=path.join(root,'public');
-fs.mkdirSync(data,{recursive:true});fs.mkdirSync(path.join(data,'resumes'),{recursive:true});fs.mkdirSync(path.join(pub,'uploads'),{recursive:true});
+const isVercel=!!process.env.VERCEL;
+const root=path.dirname(fileURLToPath(import.meta.url)), data=isVercel?'/tmp/ce-data':path.join(root,'data'), pub=path.join(root,'public');
+fs.mkdirSync(data,{recursive:true});fs.mkdirSync(path.join(data,'resumes'),{recursive:true});try{try{fs.mkdirSync(path.join(pub,'uploads'),{recursive:true});}catch{}}catch{}
 const file=path.join(data,'content.json'), keyfile=path.join(data,'admin-key.txt');
 if(!fs.existsSync(file)) fs.copyFileSync(path.join(root,'seed.json'),file);
 if(!fs.existsSync(keyfile)) fs.writeFileSync(keyfile,crypto.randomBytes(32).toString('hex'),{mode:0o600});
@@ -17,7 +18,7 @@ const save=(p,value)=>{fs.writeFileSync(p+'.tmp',JSON.stringify(value,null,2));f
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const error=(message,status=400)=>Object.assign(new Error(message),{status});
 const rates=new Map();
-const sameOrigin=req=>!req.headers.origin||[`http://localhost:${port}`,`http://127.0.0.1:${port}`].includes(req.headers.origin);
+const sameOrigin=req=>isVercel||!req.headers.origin||[`http://localhost:${port}`,`http://127.0.0.1:${port}`].includes(req.headers.origin);
 
 async function body(req){let length=0,chunks=[];for await(const chunk of req){length+=chunk.length;if(length>8*1024*1024)throw error('File or request is too large.',413);chunks.push(chunk);}try{return JSON.parse(Buffer.concat(chunks).toString());}catch{throw error('Please send a valid form.');}}
 const safeText=(x,n=5000)=>String(x??'').trim().slice(0,n);
@@ -45,7 +46,7 @@ const server=http.createServer(async(req,res)=>{
  res.setHeader('Content-Security-Policy',"default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self' https://www.googletagmanager.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
  const json=(x,status=200)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(x));};
  try{
- if(![`localhost:${port}`,`127.0.0.1:${port}`].includes(req.headers.host))throw error('Unrecognized host.',403);
+ if(!isVercel&&![`localhost:${port}`,`127.0.0.1:${port}`].includes(req.headers.host))throw error('Unrecognized host.',403);
  if(!sameOrigin(req))throw error('This request must come from the website.',403);
  if(route==='/api/content'&&req.method==='GET')return json(read());
  if(await auth.handle(req,res,route,json))return;
