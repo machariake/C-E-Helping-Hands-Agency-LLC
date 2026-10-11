@@ -1,0 +1,16 @@
+C&E HELPING HANDS WEBSITE
+
+Start Website.cmd - opens your local website.
+Open Admin.cmd - first-time account setup or Admin sign-in.
+
+Guides - instructions and feature guides.
+Backups - clean website source ZIP, excluding private records.
+Previews - screenshots of your website and Admin.
+GitHub upload - prepared source repository, excluding private records.
+Upload website to GitHub.cmd - upload helper using the prepared source copy.
+
+UPLOAD STATUS: GitHub upload has not completed. Git previously crashed on this computer. Copying these files does not fix that crash or publish the website.
+The prepared GitHub copy is a snapshot; future website edits must be synchronized before uploading.
+
+Your working website files remain here and in public/.
+Keep data/ private: it contains account settings, inquiries and resumes.

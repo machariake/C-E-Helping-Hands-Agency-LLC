@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {spawn} from 'node:child_process';
+const root=path.dirname(fileURLToPath(import.meta.url));
+const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'ce-site-test-'));
+for(const name of ['server.mjs','enhancements.mjs','leads.mjs','auth.mjs','seed.json','public'])fs.cpSync(path.join(root,name),path.join(tmp,name),{recursive:true});
+const port=43879,base=`http://localhost:${port}`,child=spawn(process.execPath,[path.join(tmp,'server.mjs')],{env:{...process.env,PORT:String(port)},stdio:'pipe'});
+let passed=0;
+const check=(title,fn)=>fn().then(()=>{passed++;console.log('PASS '+title);});
+try{
+ await new Promise((resolve,reject)=>{child.stdout.once('data',resolve);child.once('error',reject);child.once('exit',code=>reject(Error('Server exited: '+code)));});
+ const key=fs.readFileSync(path.join(tmp,'data','admin-key.txt'),'utf8').trim();
+ const admin={Authorization:'Bearer '+key,'Content-Type':'application/json'};
+ await check('All requested pages respond with titles',async()=>{for(const route of ['/','/about','/services','/services/companion-care','/why-choose-us','/how-it-works','/service-areas','/careers','/resources','/resources/family-care-planning','/faqs','/contact','/request-care','/privacy','/accessibility','/admin']){const r=await fetch(base+route);assert.equal(r.status,200,route);assert.match(await r.text(),/<title>[^<]+<\/title>/);}});
+ await check('Unknown routes return 404',async()=>assert.equal((await fetch(base+'/not-a-page')).status,404));
+ await check('Admin and resumes require authentication',async()=>{assert.equal((await fetch(base+'/api/admin/content')).status,401);assert.equal((await fetch(base+'/api/admin/submissions')).status,401);assert.equal((await fetch(base+'/api/admin/resumes/test.pdf')).status,401);});
+ await check('Cross-origin writes are rejected',async()=>assert.equal((await fetch(base+'/api/inquiries',{method:'POST',headers:{Origin:'https://untrusted.example','Content-Type':'application/json'},body:'{}'})).status,403));
+ await check('Invalid forms are rejected',async()=>{const r=await fetch(base+'/api/inquiries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'care',name:'Test',phone:'1234567890',email:'invalid',consent:true})});assert.equal(r.status,400);});
+ const sample={type:'care',name:'QA Test Person',phone:'202-555-0123',email:'test@example.com',city:'Test city',consent:true,contactMethod:'Email',message:'Synthetic QA record.'};
+ await check('Care inquiries persist and can be reviewed',async()=>{const r=await fetch(base+'/api/inquiries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(sample)});assert.equal(r.status,201);const items=await(await fetch(base+'/api/admin/submissions',{headers:admin})).json();assert.equal(items[0].name,sample.name);assert.equal(items[0].status,'New');assert.equal(JSON.parse(fs.readFileSync(path.join(tmp,'data','submissions.json'))).length,1);});
+ await check('Career application and private résumé download work',async()=>{const bytes=Buffer.from('%PDF-1.4\n% synthetic QA file');const r=await fetch(base+'/api/inquiries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...sample,type:'career',resume:{name:'test.pdf',base64:bytes.toString('base64')}})});assert.equal(r.status,201);const items=await(await fetch(base+'/api/admin/submissions',{headers:admin})).json();const file=await fetch(base+'/api/admin/resumes/'+items[0].resume,{headers:admin});assert.equal(file.status,200);assert.deepEqual(Buffer.from(await file.arrayBuffer()),bytes);});
+ await check('Admin follow-up status persists',async()=>{const items=await(await fetch(base+'/api/admin/submissions',{headers:admin})).json();const r=await fetch(base+'/api/admin/submissions',{method:'PATCH',headers:admin,body:JSON.stringify({id:items[0].id,status:'Contacted'})});assert.equal(r.status,200);const updated=await(await fetch(base+'/api/admin/submissions',{headers:admin})).json();assert.equal(updated[0].status,'Contacted');});
+ await check('Admin content changes persist to public API',async()=>{const c=await(await fetch(base+'/api/content')).json();c.business.phone='202-555-0123';c.business.heroTitle='QA edited title';const r=await fetch(base+'/api/admin/content',{method:'PUT',headers:admin,body:JSON.stringify(c)});assert.equal(r.status,200);const fresh=await(await fetch(base+'/api/content')).json();assert.equal(fresh.business.heroTitle,'QA edited title');assert.equal(JSON.parse(fs.readFileSync(path.join(tmp,'data','content.json'))).business.phone,'202-555-0123');});
+ await check('Invalid admin URL and duplicate page slugs are rejected',async()=>{const c=await(await fetch(base+'/api/content')).json();c.business.facebook='javascript:alert(1)';assert.equal((await fetch(base+'/api/admin/content',{method:'PUT',headers:admin,body:JSON.stringify(c)})).status,400);c.business.facebook='';c.services[1].slug=c.services[0].slug;assert.equal((await fetch(base+'/api/admin/content',{method:'PUT',headers:admin,body:JSON.stringify(c)})).status,400);});
+ await check('Uploaded images validate their file signature',async()=>{assert.equal((await fetch(base+'/api/admin/upload',{method:'POST',headers:admin,body:JSON.stringify({base64:Buffer.from('<script>alert(1)</script>').toString('base64')})})).status,400);const image=fs.readFileSync(path.join(root,'public','assets','care-at-home.png'));const r=await fetch(base+'/api/admin/upload',{method:'POST',headers:admin,body:JSON.stringify({base64:image.toString('base64')})});assert.equal(r.status,200);const {url}=await r.json();assert.equal((await fetch(base+url)).headers.get('content-type'),'image/png');});
+ await check('Private files are not publicly served',async()=>{assert.equal((await fetch(base+'/data/admin-key.txt')).status,404);assert.equal((await fetch(base+'/server.mjs')).status,404);});
+ await check('Preview is excluded from indexing',async()=>{assert.match(await(await fetch(base+'/robots.txt')).text(),/Disallow: \//);assert.match(await(await fetch(base+'/')).text(),/noindex,nofollow/);assert.equal((await fetch(base+'/sitemap.xml')).status,200);});
+ console.log(`\n${passed} checks passed. Live data was not modified.`);
+}finally{child.kill();await new Promise(r=>child.once('exit',r));/* Preserve isolated test artifacts in OS temp for inspection. */}

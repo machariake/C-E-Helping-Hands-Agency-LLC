@@ -1,0 +1,13 @@
+data/
+public/uploads/
+node_modules/
+*.log
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+GitHub upload/
+Backups/
+Previews/

@@ -1,0 +1,266 @@
+{
+  "business": {
+    "name": "C&E Helping Hands Agency LLC",
+    "tagline": "Compassionate Care. Helping Hands. Peace of Mind.",
+    "phone": "(470) 230-0544",
+    "email": "",
+    "address": "",
+    "hours": "",
+    "serviceArea": "",
+    "founderStory": "",
+    "license": "",
+    "payments": "",
+    "website": "",
+    "facebook": "",
+    "instagram": "",
+    "maps": "",
+    "analyticsId": "",
+    "searchVerification": "",
+    "logo": "/assets/ce-logo.jpg",
+    "heroImage": "/assets/ce-care-home.jpg",
+    "aboutImage": "/assets/ce-care-about.jpg",
+    "heroTitle": "Caring hearts. Helping hands.",
+    "heroText": "Dependable, compassionate in-home support to help you or your loved one feel safe, comfortable, and independent in the place you call home.",
+    "preview": true
+  },
+  "services": [
+    {
+      "slug": "personal-care",
+      "title": "Personal Care Assistance",
+      "description": "A helping hand with everyday routines, always with dignity and respect.",
+      "body": "Personal routines are personal for a reason. Support can be planned around your preferences, comfort and daily rhythm. Discuss the assistance you need with our team so we can confirm what is available and appropriate.",
+      "includes": "Bathing, grooming and dressing support\nAssistance with daily routines\nRespect for privacy and personal preferences",
+      "icon": "heart",
+      "enabled": true,
+      "confirmed": false
+    },
+    {
+      "slug": "companion-care",
+      "title": "Companion Care",
+      "description": "Meaningful conversation, shared interests, and a friendly presence at home.",
+      "body": "Sometimes a little company makes a big difference. Companion care focuses on connection and activities that bring enjoyment to the day. Share the routines, hobbies and interests that matter to you when we talk about a care plan.",
+      "includes": "Conversation and companionship\nReading, games and shared activities\nSupport with a comfortable daily routine",
+      "icon": "people",
+      "enabled": true,
+      "confirmed": false
+    },
+    {
+      "slug": "meal-preparation",
+      "title": "Meal Preparation",
+      "description": "Thoughtful help with meals, shaped around preferences and everyday routines.",
+      "body": "Familiar meals can make home feel like home. Talk with us about meal planning and preparation needs, including food preferences and instructions already provided by your care team. Availability and scope are confirmed during consultation.",
+      "includes": "Meal planning and preparation\nKitchen tidying after meals\nHelp following established food preferences",
+      "icon": "meal",
+      "enabled": true,
+      "confirmed": false
+    },
+    {
+      "slug": "light-housekeeping",
+      "title": "Light Housekeeping",
+      "description": "A little support to keep everyday living spaces comfortable and welcoming.",
+      "body": "Everyday household tasks can take time and energy. Light housekeeping focuses on the areas and tasks agreed in your care plan, helping create a comfortable environment while respecting the way you like your home.",
+      "includes": "Tidying immediate living areas\nLight laundry and linen support\nEveryday household organization",
+      "icon": "home",
+      "enabled": true,
+      "confirmed": false
+    },
+    {
+      "slug": "medication-reminders",
+      "title": "Medication Reminders",
+      "description": "Gentle reminders that support an already established medication routine.",
+      "body": "Where permitted and included in the agreed care plan, reminders can help support an established schedule. This service does not include prescribing, changing doses or clinical medication management. Confirm the available scope with the agency.",
+      "includes": "Reminders at agreed times\nRespect for established instructions\nCommunication about routine concerns",
+      "icon": "clock",
+      "enabled": true,
+      "confirmed": false
+    },
+    {
+      "slug": "respite-care",
+      "title": "Respite Care",
+      "description": "Space for family caregivers to rest, recharge, and take care of their own day.",
+      "body": "Caring for someone you love also means finding time for yourself. Respite support may help cover a planned break, work hours or other responsibilities. We will discuss your loved one's routine and confirm scheduling and availability together.",
+      "includes": "Planned breaks for family caregivers\nSupport with agreed daily activities\nA shared understanding of routines",
+      "icon": "leaf",
+      "enabled": true,
+      "confirmed": false
+    },
+    {
+      "slug": "transportation-errands",
+      "title": "Transportation & Errands",
+      "description": "Support with appointments, shopping, and staying connected to your community.",
+      "body": "Getting out and completing errands can be an important part of independence. Discuss the destinations, timing and assistance needed with our team. Transportation arrangements, availability and any restrictions must be confirmed before care begins.",
+      "includes": "Appointment and errand planning\nShopping assistance\nCommunity outings where available",
+      "icon": "car",
+      "enabled": true,
+      "confirmed": false
+    },
+    {
+      "slug": "mobility-assistance",
+      "title": "Mobility & Transfer Assistance",
+      "description": "Considerate support with movement as part of an appropriate care plan.",
+      "body": "Mobility needs are individual. Our team will discuss the type of assistance required and determine whether it is within the agency's available services and caregiver capabilities. All support must follow an agreed, appropriate care plan.",
+      "includes": "Discussion of everyday mobility needs\nAssistance within the agreed scope\nRespect for comfort and independence",
+      "icon": "people",
+      "enabled": true,
+      "confirmed": false
+    },
+    {
+      "slug": "post-hospital-support",
+      "title": "Post-Hospital Support",
+      "description": "Non-medical help with everyday life when returning to the comfort of home.",
+      "body": "Coming home after a hospital stay can involve changes to familiar routines. Non-medical assistance may help with companionship, meal preparation and everyday tasks. Clinical care and discharge instructions remain with your healthcare professionals.",
+      "includes": "Help settling back into daily routines\nMeal and household support\nCompanionship during the transition home",
+      "icon": "home",
+      "enabled": true,
+      "confirmed": false
+    }
+  ],
+  "areas": [],
+  "jobs": [],
+  "testimonials": [],
+  "resources": [
+    {
+      "slug": "prepare-for-care-conversation",
+      "title": "Your first care conversation, made easier",
+      "category": "Getting started",
+      "summary": "A few thoughtful questions to bring to a conversation about care at home.",
+      "body": "Start with the everyday. Write down the routines that are going well and the tasks where a little help would be welcome. Include the person's own priorities and preferences.\n\nConsider timing. Think about the days and hours when support would be useful, and whether those needs are likely to change.\n\nBring your questions. Ask about available services, scheduling, costs, communication and what happens if a caregiver is unavailable. Ask the agency to explain its actual credentials and policies.\n\nKeep the conversation personal. Favorite meals, interests and routines can help a care provider understand what feeling comfortable at home means to your family."
+    },
+    {
+      "slug": "family-care-planning",
+      "title": "Making room for every voice in a care plan",
+      "category": "Family support",
+      "summary": "A practical way to begin a respectful family conversation about support.",
+      "body": "Choose a calm time to talk, with the person receiving care at the center of the conversation. Ask what matters most to them and what they would like help with.\n\nSeparate preferences from logistics. First understand what a good day looks like. Then talk about schedules, responsibilities and who will be the main point of contact.\n\nWrite down the next step. A simple list of questions for a care consultation can be more useful than trying to solve everything in one sitting.\n\nRevisit the plan together. Routines and preferences can change, so leave room for regular conversations."
+    },
+    {
+      "slug": "caregiver-consultation-checklist",
+      "title": "A simple checklist for choosing home support",
+      "category": "Planning ahead",
+      "summary": "Topics to discuss before you decide on a home-care arrangement.",
+      "body": "Ask which services the agency actually provides and what falls outside its scope. Confirm that the assistance you need is available in your location.\n\nDiscuss caregiver matching, scheduling, communication and how concerns are handled. Request written information about costs, payment arrangements and cancellation policies.\n\nAsk how changes in your needs are reviewed and how your preferences will be recorded. Understand who to contact with routine questions.\n\nTake your time with the decision. A consultation is an opportunity to gather information and see whether the proposed arrangement fits your family."
+    }
+  ],
+  "faqs": [
+    {
+      "question": "How do I get started?",
+      "answer": "Use our request-care form to tell us what kind of support you are looking for. The next step is a conversation about your needs, location and preferences, followed by confirmation of availability and an appropriate care plan."
+    },
+    {
+      "question": "Can care be tailored to our family's routine?",
+      "answer": "Your needs and preferences should guide the conversation. Share the days, times and tasks that matter to you. The agency will confirm available services and scheduling before care begins."
+    },
+    {
+      "question": "What areas do you serve?",
+      "answer": "Our service-area details are being finalized. Please include your city or ZIP code in your inquiry so coverage can be confirmed."
+    },
+    {
+      "question": "What does home care cost?",
+      "answer": "Costs depend on the services, schedule and arrangement agreed with the agency. Request a consultation for current pricing and payment options. No insurance or benefit acceptance is implied on this website."
+    },
+    {
+      "question": "Should I include medical information in the form?",
+      "answer": "No. Please use the form for basic contact details and a general description of the support you need. Do not include diagnoses, medication lists, insurance numbers or other sensitive medical information."
+    }
+  ],
+  "media": {
+    "hero": "/assets/ce-care-home.jpg",
+    "about": "/assets/ce-care-about.jpg",
+    "support": "/assets/companionship.png",
+    "quality": "/assets/meal-preparation.png",
+    "careers": "/assets/caregiver-portrait.png",
+    "socialImage": "/assets/companionship.png"
+  },
+  "social": {
+    "facebook": "",
+    "instagram": "",
+    "linkedin": "",
+    "youtube": "",
+    "tiktok": "",
+    "x": "",
+    "whatsapp": ""
+  },
+  "local": {
+    "city": "",
+    "region": "",
+    "postalCode": "",
+    "country": ""
+  },
+  "translation": {
+    "enabled": true,
+    "autoDetect": true,
+    "dailyLimit": 100000
+  },
+  "seo": {
+    "canonicalOrigin": "",
+    "homeTitle": "Compassionate Home Care",
+    "homeDescription": "Dependable, compassionate in-home support to help you or your loved one feel safe, comfortable, and independent in the place you call home.",
+    "allowIndexing": false,
+    "pages": [
+      {
+        "path": "/about",
+        "title": "",
+        "description": ""
+      },
+      {
+        "path": "/services",
+        "title": "",
+        "description": ""
+      },
+      {
+        "path": "/why-choose-us",
+        "title": "",
+        "description": ""
+      },
+      {
+        "path": "/careers",
+        "title": "",
+        "description": ""
+      },
+      {
+        "path": "/resources",
+        "title": "",
+        "description": ""
+      },
+      {
+        "path": "/service-areas",
+        "title": "",
+        "description": ""
+      },
+      {
+        "path": "/contact",
+        "title": "",
+        "description": ""
+      },
+      {
+        "path": "/request-care",
+        "title": "",
+        "description": ""
+      }
+    ]
+  },
+  "policies": {
+    "updated": "October 11, 2026",
+    "reviewed": false,
+    "privacy": {
+      "title": "Privacy Policy",
+      "body": "## Information you choose to share\n\nCare inquiries collect your name, phone number, email, location, contact preference and general care interests. Career applications also collect experience, availability, qualifications and an optional r\u00e9sum\u00e9. Do not submit diagnoses, medication lists, insurance numbers, identity documents, or other sensitive medical information.\n\n## How this website uses information\n\nYour submission is stored on the server running this website for the agency to review and respond. Uploaded r\u00e9sum\u00e9s require authorized admin access. Full submissions are not emailed. Optional notifications are described below; no external recruitment service is connected. The current website is a local preview on the agency\u2019s computer.\n\n## Analytics and browser preferences\n\nOptional Google Analytics loads only after you allow it, and only if the agency has connected a measurement ID. It may collect technical and visit information such as device characteristics and page views. Our custom analytics events do not include form values, r\u00e9sum\u00e9s, URL queries, or fragments. Advertising personalization is disabled. You can change your choice through Cookie preferences in the footer.\n\n## Language translation\n\nIf Google Cloud Translation is connected, public page text may be sent to Google to provide a translated version. The website does not send the values entered in forms or uploaded r\u00e9sum\u00e9s for translation. A manually selected language is remembered in your browser. Automatic translations can contain errors; contact the agency to confirm important details.\n\n## Access and retention\n\nAuthorized administrators can review submissions. No automatic deletion schedule is currently enabled. Contact the agency to request access, correction, or deletion; requests are handled according to the circumstances and applicable requirements. Before public launch, the agency must confirm its retention, hosting, backup and access practices and update this policy accordingly.\n\n## External websites\n\nSocial profile and other external links open services with their own privacy practices. Those services may collect information when you visit them.\n\n## Questions\n\nUse the contact details below for a privacy question or request. This notice describes the website\u2019s configured behavior; agency policies and applicable legal requirements must be reviewed before public launch.\n\n## Optional email notifications\n\nWhen the agency connects and enables Resend, the email provider processes the sender and recipient email addresses and message content. Team alerts contain a request type and reference number, not your submitted contact details or care information. If enabled and you provide an email address, a short receipt is sent to that address. Callback requests can be submitted without email. Follow-up dates and notes are stored privately in the agency Admin inbox. Contact the agency for information about retention or deletion."
+    },
+    "terms": {
+      "title": "Website Terms",
+      "body": "## Using this website\n\nThis website provides general information about C&E Helping Hands Agency LLC and a way to request a conversation or apply for work. Use it lawfully and do not attempt to access private records, disrupt the website, or submit information about another person without appropriate authority.\n\n## Inquiries and service arrangements\n\nSubmitting a form does not create a care agreement, guarantee service availability, confirm an appointment, or establish a clinician\u2013patient relationship. Service scope, location, scheduling, payment and other terms must be confirmed directly with the agency in a separate agreement.\n\n## Applications\n\nA career application or expression of interest does not guarantee employment, an interview, or a particular role. Provide accurate information. Employment terms are handled separately.\n\n## Accuracy and external links\n\nDetails can change. Contact the agency to confirm current offerings and prices. External services and social profiles have their own terms. Translations are provided for convenience and may contain errors.\n\n## Website materials\n\nThe website includes agency-provided and AI-generated illustrative imagery. An image alone does not verify a person\u2019s employment, qualifications, or relationship to the agency. Contact the agency regarding permission to reuse its branding or website materials.\n\n## Changes and questions\n\nThe agency may update this information as its website and services change. Contact the agency about these terms. These website terms do not replace a service agreement or rights provided by applicable law."
+    },
+    "cookies": {
+      "title": "Cookie & Analytics Policy",
+      "body": "## Essential browser storage\n\nThe website remembers your analytics choice and manually selected language using browser storage. Admin access is stored in the administrator\u2019s current browser session. These settings support the requested functions and are not advertising profiles.\n\n## Optional Google Analytics\n\nGoogle Analytics is optional and is inactive until a measurement ID is configured and you choose Allow analytics. When enabled, it may use first-party analytics cookies, including cookies whose names begin with _ga, to understand visits and basic interactions. Advertising storage, advertising user data and personalization are denied by the site\u2019s consent settings.\n\n## Your choice\n\nChoose No thanks to browse without the optional Google tag. Use Cookie preferences in the footer to change your decision. Declining after previously allowing analytics disables future analytics on the page, removes accessible analytics cookies, and reloads the page when needed. This does not delete records already received by Google.\n\n## Translation\n\nLanguage selection uses local browser storage. Translation, when connected, sends public page text to Google Cloud Translation and does not require analytics consent. Form values and uploaded files are excluded from the translation feature.\n\n## More information\n\nSee the Privacy Policy for information about inquiries, applications and privacy requests. Cookie behavior should be rechecked if additional integrations are added.\n\n## Admin sign-in\n\nAn essential, HttpOnly session cookie keeps authorized administrators signed in for up to eight hours. It is removed on sign-out and is not used for advertising. Admin passwords are stored as salted password hashes. When email recovery is connected, a one-use reset link is sent to the registered Admin email and expires after 15 minutes."
+    },
+    "accessibility": {
+      "title": "Accessibility",
+      "body": "## Our approach\n\nWe aim to make care information easy to find and use. The website includes keyboard navigation, visible focus indicators, text alternatives for imagery, labeled forms, and layouts that adapt to smaller screens.\n\n## Motion and language\n\nThe service carousel and moving text can be paused. The site respects a device\u2019s reduced-motion preference. When a translation provider is connected, visitors can choose from the languages it supports, and supported browser language preferences can be detected. Automated translations may need clarification.\n\n## Getting assistance\n\nIf a page or feature is difficult to use, contact the agency and describe the page, the issue, and your preferred way of receiving the information. We welcome feedback and will work to provide an alternative. This statement is not a claim of certified conformance to a particular accessibility standard."
+    },
+    "care-disclaimer": {
+      "title": "Care Information Disclaimer",
+      "body": "## General information\n\nWebsite content is for general information about possible non-medical home support. It is not individualized medical advice, diagnosis, treatment, or a substitute for guidance from qualified healthcare professionals.\n\n## Scope and availability\n\nCare services must be confirmed with C&E, including what the agency is authorized and staffed to provide. Draft service descriptions are not a promise of availability. Clinical care, medication administration, specialized services, payment-program acceptance and around-the-clock coverage are not implied unless expressly confirmed by the agency.\n\n## Urgent needs\n\nWebsite forms are for routine inquiries and are not monitored for emergencies. If you need immediate help, contact the appropriate emergency service where you are.\n\n## Images and translations\n\nImages are illustrative and do not establish the qualifications or employment of pictured people. Automatic translation may alter meaning. Confirm important care, scheduling, payment and service details directly with the agency."
+    }
+  }
+}

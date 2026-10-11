@@ -1,0 +1,53 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+export const extraPages={'/terms':['Website Terms','Terms for using the C&E Helping Hands website.'],'/cookies':['Cookie & Analytics Policy','Your preferences for optional website analytics.'],'/care-disclaimer':['Care Information Disclaimer','The scope and limitations of information on this website.']};
+export function validateExtras(c){
+ const fail=m=>{throw Object.assign(new Error(m),{status:400});};
+ const safeImage=v=>!v||/^\/(assets|uploads)\/[a-zA-Z0-9._-]+$/.test(v);
+ for(const v of Object.values(c.media||{}))if(!safeImage(v))fail('Select an uploaded image.');
+ const chosen=Object.entries(c.media||{}).filter(([k,v])=>v&&k!=='socialImage').map(([,v])=>v);
+ for(const service of c.services)if(service.image)chosen.push(service.image);
+ if(new Set(chosen).size!==chosen.length)fail('Use a different photo for each homepage section.');
+ for(const s of c.services)if(!safeImage(s.image))fail('Select an uploaded service image.');
+ const domains={facebook:['facebook.com','fb.com'],instagram:['instagram.com'],linkedin:['linkedin.com'],youtube:['youtube.com','youtu.be'],tiktok:['tiktok.com'],x:['x.com','twitter.com'],whatsapp:['wa.me','whatsapp.com']};
+ for(const [k,v]of Object.entries(c.social||{})){if(!v)continue;let u;try{u=new URL(v);}catch{fail('Enter a full https:// social profile link.');}if(u.protocol!=='https:'||!domains[k]?.some(d=>u.hostname===d||u.hostname.endsWith('.'+d)))fail(`Enter a valid ${k} profile URL.`);}
+ if(c.seo?.canonicalOrigin){try{const u=new URL(c.seo.canonicalOrigin);if(u.protocol!=='https:'||u.pathname!=='/'||u.search||u.hash)fail('Public domain must be an https:// origin without a page path.');}catch{fail('Enter a valid https:// public domain.');}}
+ if(!Number.isFinite(Number(c.translation?.dailyLimit))||Number(c.translation.dailyLimit)<1000||Number(c.translation.dailyLimit)>500000)fail('Translation limit must be between 1,000 and 500,000 characters per day.');
+}
+export function createEnhancements({data,read,save,body,jsonError}){
+ const secretFile=path.join(data,'integrations.json'),usageFile=path.join(data,'translation-usage.json');let languages=null,cache=new Map(),limits=new Map();
+ const secrets=()=>fs.existsSync(secretFile)?JSON.parse(fs.readFileSync(secretFile,'utf8')):{};
+ const key=()=>process.env.GOOGLE_TRANSLATE_API_KEY||secrets().translationKey||'';
+ const usage=()=>{const today=new Date().toISOString().slice(0,10);let u=fs.existsSync(usageFile)?JSON.parse(fs.readFileSync(usageFile,'utf8')):{};return u.date===today?u:{date:today,characters:0};};
+ async function google(endpoint,options={}){const r=await fetch('https://translation.googleapis.com/language/translate/v2'+endpoint,{...options,headers:{'Content-Type':'application/json','X-goog-api-key':key()},signal:AbortSignal.timeout(20000)});if(!r.ok)throw jsonError('Translation provider could not complete the request. Check the API key, billing, and API restrictions in Google Cloud.',502);return(await r.json()).data;}
+ async function getLanguages(){if(!languages)languages=(await google('/languages?target=en')).languages;return languages;}
+ return async function handle(req,res,route,json){
+ if(route==='/api/admin/integrations'&&req.method==='GET'){return json({translationConfigured:!!key(),usage:usage(),analyticsConfigured:!!read().business.analyticsId}),true;}
+ if(route==='/api/admin/integrations'&&req.method==='PUT'){const b=await body(req),s=secrets();if(b.clearTranslationKey===true)delete s.translationKey;else if(b.translationKey){if(typeof b.translationKey!=='string'||b.translationKey.length>300)throw jsonError('Invalid translation key.');s.translationKey=b.translationKey.trim();}save(secretFile,s);languages=null;cache.clear();return json({ok:true,translationConfigured:!!key()}),true;}
+ if(route==='/api/admin/test-translation'&&req.method==='POST'){if(!key())throw jsonError('Add a Google Cloud Translation API key first.');const l=await getLanguages();return json({ok:true,languages:l.length}),true;}
+ if(route==='/api/languages'&&req.method==='GET'){if(!read().translation?.enabled||!key())return json({configured:false,languages:[{language:'en',name:'English'}]}),true;try{return json({configured:true,languages:await getLanguages()}),true;}catch{return json({configured:false,languages:[{language:'en',name:'English'}],unavailable:true}),true;}}
+ if(route==='/api/translate'&&req.method==='POST'){
+ if(!read().translation?.enabled||!key())throw jsonError('Translation is not available yet.',503);
+ const b=await body(req);if(!Array.isArray(b.texts)||b.texts.length>80||!b.texts.every(t=>typeof t==='string'&&t.length<=5000))throw jsonError('Invalid translation request.');
+ const total=b.texts.reduce((n,t)=>n+t.length,0);if(total>20000)throw jsonError('Translation batch is too large.');
+ if(!(await getLanguages()).some(l=>l.language===b.target))throw jsonError('This language is not supported by the translation provider.');
+ const now=Date.now(),ip=req.socket.remoteAddress,recent=(limits.get(ip)||[]).filter(t=>now-t<60000);if(recent.length>35)throw jsonError('Please wait before requesting another translation.',429);recent.push(now);limits.set(ip,recent);
+ const ids=b.texts.map(t=>crypto.createHash('sha256').update(b.target+'\0'+t).digest('hex'));const missing=ids.map((id,i)=>cache.has(id)?-1:i).filter(i=>i>=0),uncached=missing.reduce((n,i)=>n+b.texts[i].length,0);const u=usage();if(u.characters+uncached>Number(read().translation.dailyLimit||100000))throw jsonError('Translation is temporarily unavailable. Please try again later.',429);
+ if(missing.length){u.characters+=uncached;save(usageFile,u);const d=await google('',{method:'POST',body:JSON.stringify({q:missing.map(i=>b.texts[i]),source:'en',target:b.target,format:'text'})});if(d.translations.length!==missing.length)throw jsonError('Incomplete translation response.',502);missing.forEach((i,n)=>cache.set(ids[i],d.translations[n].translatedText));}
+ const translated=ids.map(id=>cache.get(id));if(cache.size>5000)cache.clear();return json({translations:translated}),true;
+ }
+ return false;
+ };
+}
+export function indexingAllowed(c,req){const origin=c.seo?.canonicalOrigin||c.business.website;let hostname;try{hostname=new URL(origin).host;}catch{return false;}return !c.business.preview&&c.seo?.allowIndexing===true&&req.headers.host===hostname&&!/^(localhost|127\.)/.test(hostname);}
+export function pageSeo(c,route,baseMeta){const override=c.seo?.pages?.find(p=>p.path===route);const meta=extraPages[route]||baseMeta;const title=override?.title||((route==='/'&&c.seo?.homeTitle)||meta?.[0]||'Page Not Found');const description=override?.description||((route==='/'&&c.seo?.homeDescription)||meta?.[1]||'');return{meta,title:title+' | '+c.business.name,description};}
+export function seoExtras(c,route,meta,req){const {title,description}=pageSeo(c,route,meta),origin=(c.seo?.canonicalOrigin||c.business.website||'').replace(/\/$/,'');const url=origin+route;const image=c.media?.socialImage||c.business.heroImage;const b=c.business;
+ const schema={'@context':'https://schema.org','@type':b.address&&c.local?.city?'LocalBusiness':'Organization',name:b.name,description:c.seo?.homeDescription||b.heroText,telephone:b.phone};if(origin){schema.url=origin;schema['@id']=origin+'/#organization';schema.logo=origin+b.logo;schema.image=origin+image;}if(b.email)schema.email=b.email;if(b.address)schema.address={'@type':'PostalAddress',streetAddress:b.address,addressLocality:c.local?.city||undefined,addressRegion:c.local?.region||undefined,postalCode:c.local?.postalCode||undefined,addressCountry:c.local?.country||undefined};const areas=c.areas.map(a=>a.locality||a.title);if(b.serviceArea)areas.unshift(b.serviceArea);if(areas.length)schema.areaServed=areas;schema.sameAs=Object.values(c.social||{}).filter(Boolean);const data=JSON.stringify(schema).replaceAll('<','\\u003c');
+ return `<meta name="robots" content="${indexingAllowed(c,req)&&meta?'index,follow':'noindex,nofollow'}">${origin?`<link rel="canonical" href="${escape(url)}"><meta property="og:url" content="${escape(url)}">`:''}<meta property="og:title" content="${escape(title)}"><meta property="og:description" content="${escape(description)}"><meta property="og:type" content="website"><meta property="og:site_name" content="${escape(b.name)}"><meta name="twitter:card" content="summary_large_image">${origin?`<meta property="og:image" content="${escape(origin+image)}"><meta name="twitter:image" content="${escape(origin+image)}">`:''}${b.searchVerification?`<meta name="google-site-verification" content="${escape(b.searchVerification)}">`:''}<script type="application/ld+json">${data}</script>`;
+}
+export function crawlBody(c,route,meta){let title=meta?.[0]||'Page not found',text=meta?.[1]||'Return to the homepage to continue.',links=[];const visible=c.services.filter(s=>s.enabled&&(c.business.preview||s.confirmed));if(route==='/'){title=c.business.heroTitle;text=c.business.heroText;links=visible.map(s=>({url:'/services/'+s.slug,title:s.title,text:s.description}));}for(const [prefix,list]of [['services',visible],['resources',c.resources],['service-areas',c.areas]]){const found=list.find(i=>route==='/'+prefix+'/'+i.slug);if(found){title=found.title;text=found.body||found.description||found.summary;}}
+ if(route==='/about')text=c.business.founderStory||'Our approach centers on respect, communication and care tailored to the individual.';if(c.policies?.[route.slice(1)])text=c.policies[route.slice(1)].body;if(route==='/services')links=visible.map(s=>({url:'/services/'+s.slug,title:s.title,text:s.description}));if(route==='/resources')links=c.resources.map(s=>({url:'/resources/'+s.slug,title:s.title,text:s.summary}));if(route==='/service-areas')links=c.areas.map(s=>({url:'/service-areas/'+s.slug,title:s.title,text:s.description}));
+ return `<header class="wrap"><p>${escape(c.business.name)}</p><nav aria-label="Main navigation"><a href="/">Home</a> · <a href="/about">About</a> · <a href="/services">Services</a> · <a href="/service-areas">Service areas</a> · <a href="/careers">Careers</a> · <a href="/contact">Contact</a></nav></header><main id="main" class="wrap section"><h1>${escape(title)}</h1>${String(text).split('\n\n').map(p=>'<p>'+escape(p)+'</p>').join('')}${links.map(l=>`<article><h2><a href="${l.url}">${escape(l.title)}</a></h2><p>${escape(l.text)}</p></article>`).join('')}<a href="tel:${escape(c.business.phone.replace(/[^+\d]/g,''))}">Call ${escape(c.business.phone)}</a><p>Enable JavaScript to use interactive forms and language selection.</p></main>`;
+}
