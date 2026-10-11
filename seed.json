@@ -187,8 +187,8 @@
     "country": ""
   },
   "translation": {
-    "enabled": false,
-    "autoDetect": false,
+    "enabled": true,
+    "autoDetect": true,
     "dailyLimit": 100000
   },
   "seo": {
