@@ -13,7 +13,7 @@ const file=path.join(data,'content.json'), keyfile=path.join(data,'admin-key.txt
 if(!fs.existsSync(file)) fs.copyFileSync(path.join(root,'seed.json'),file);
 const key=(process.env.ADMIN_KEY||(fs.existsSync(keyfile)?fs.readFileSync(keyfile,'utf8').trim():'')).trim()||crypto.randomBytes(32).toString('hex');
 if(!fs.existsSync(keyfile)) fs.writeFileSync(keyfile,key,{mode:0o600});
-const port=Number(process.env.PORT||4173), host='127.0.0.1';
+const port=Number(process.env.PORT||4173), host=isVercel?'0.0.0.0':'127.0.0.1';
 const read=()=>JSON.parse(fs.readFileSync(file,'utf8'));
 const save=async(p,value)=>{
  fs.writeFileSync(p+'.tmp',JSON.stringify(value,null,2));fs.renameSync(p+'.tmp',p);
@@ -140,4 +140,3 @@ const server=http.createServer(async(req,res)=>{
  }catch(e){json({error:e.status?e.message:'Something went wrong. Please try again.'},e.status||500);}
 });
 server.listen(port,host,()=>console.log(`C&E website: http://localhost:${port}\nAdmin: use Open Admin.ps1 in your website folder.`));
-export default server;
