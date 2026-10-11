@@ -1,1 +1,1 @@
-{"name":"ce-helping-hands","version":"1.0.0","private":true,"description":"C&E Helping Hands Agency LLC website and local content manager","scripts":{"start":"node server.mjs","test":"node test.mjs"},"engines":{"node":">=20"}}
+{"name":"ce-helping-hands","version":"1.0.0","private":true,"description":"C&E Helping Hands Agency LLC website and local content manager","scripts":{"start":"node server.mjs","test":"node test.mjs"},"engines":{"node":">=20"},"dependencies":{"@neondatabase/serverless":"^1.2.0","@vercel/blob":"^2.8.1"}}

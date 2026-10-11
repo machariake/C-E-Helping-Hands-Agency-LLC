@@ -11,10 +11,36 @@ const root=path.dirname(fileURLToPath(import.meta.url)), data=isVercel?'/tmp/ce-
 fs.mkdirSync(data,{recursive:true});fs.mkdirSync(path.join(data,'resumes'),{recursive:true});try{try{fs.mkdirSync(path.join(pub,'uploads'),{recursive:true});}catch{}}catch{}
 const file=path.join(data,'content.json'), keyfile=path.join(data,'admin-key.txt');
 if(!fs.existsSync(file)) fs.copyFileSync(path.join(root,'seed.json'),file);
-if(!fs.existsSync(keyfile)) fs.writeFileSync(keyfile,crypto.randomBytes(32).toString('hex'),{mode:0o600});
-const key=fs.readFileSync(keyfile,'utf8').trim(), port=Number(process.env.PORT||4173), host='127.0.0.1';
+const key=(process.env.ADMIN_KEY||(fs.existsSync(keyfile)?fs.readFileSync(keyfile,'utf8').trim():'')).trim()||crypto.randomBytes(32).toString('hex');
+if(!fs.existsSync(keyfile)) fs.writeFileSync(keyfile,key,{mode:0o600});
+const port=Number(process.env.PORT||4173), host='127.0.0.1';
 const read=()=>JSON.parse(fs.readFileSync(file,'utf8'));
-const save=(p,value)=>{fs.writeFileSync(p+'.tmp',JSON.stringify(value,null,2));fs.renameSync(p+'.tmp',p);};
+const save=(p,value)=>{
+ fs.writeFileSync(p+'.tmp',JSON.stringify(value,null,2));fs.renameSync(p+'.tmp',p);
+ const dbUrl=process.env.DATABASE_URL||process.env.POSTGRES_URL;if(!dbUrl)return;
+ import('@neondatabase/serverless').then(({neon})=>{
+  const sql=neon(dbUrl);
+  if(p===file)return sql`INSERT INTO ce_content (key, data, updated_at) VALUES ('main', ${JSON.stringify(value)}::jsonb, NOW()) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`;
+  if(p===path.join(data,'submissions.json'))return Promise.all((value||[]).map(item=>sql`INSERT INTO ce_submissions (id, data, created_at) VALUES (${item.id}, ${JSON.stringify(item)}::jsonb, ${item.created||new Date().toISOString()}) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data`));
+  if(p===path.join(data,'notifications.json'))return sql`INSERT INTO ce_settings (key, data, updated_at) VALUES ('notifications', ${JSON.stringify(value)}::jsonb, NOW()) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`;
+ }).catch(err=>console.error('[DB Save Error]',err.message));
+};
+let syncedFromNeon=false;
+async function syncFromDb(){
+ if(syncedFromNeon)return;
+ const dbUrl=process.env.DATABASE_URL||process.env.POSTGRES_URL;if(!dbUrl)return;
+ try{
+  const {neon}=await import('@neondatabase/serverless');
+  const sql=neon(dbUrl);
+  const contentRows=await sql`SELECT data FROM ce_content WHERE key = 'main'`;
+  if(contentRows.length>0&&contentRows[0].data)fs.writeFileSync(file,JSON.stringify(contentRows[0].data,null,2));
+  const subRows=await sql`SELECT data FROM ce_submissions ORDER BY created_at DESC`;
+  if(subRows.length>0)fs.writeFileSync(path.join(data,'submissions.json'),JSON.stringify(subRows.map(r=>r.data),null,2));
+  const setRows=await sql`SELECT data FROM ce_settings WHERE key = 'notifications'`;
+  if(setRows.length>0&&setRows[0].data)fs.writeFileSync(path.join(data,'notifications.json'),JSON.stringify(setRows[0].data,null,2));
+  syncedFromNeon=true;
+ }catch(err){console.error('[DB Sync Error]',err.message);}
+}
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const error=(message,status=400)=>Object.assign(new Error(message),{status});
 const rates=new Map();
@@ -26,7 +52,7 @@ function validateContent(c){
  if(!c||typeof c!=='object'||!c.business?.name)throw error('A business name is required.');
  for(const name of ['services','areas','jobs','testimonials','resources','faqs'])if(!Array.isArray(c[name]))throw error(`Invalid ${name}.`);
  for(const list of [c.services,c.areas,c.resources]){const seen=new Set();for(const i of list){if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(i.slug)||seen.has(i.slug))throw error('Each page needs a unique lowercase URL slug with letters, numbers and hyphens.');seen.add(i.slug);}}
- for(const field of ['heroImage','aboutImage','logo']){const v=c.business[field];if(v&&!/^\/(?:assets|uploads)\/[a-zA-Z0-9._-]+$/.test(v))throw error('Choose an uploaded image.');}
+ for(const field of ['heroImage','aboutImage','logo']){const v=c.business[field];if(v&&!/^(?:\/(?:assets|uploads)\/[a-zA-Z0-9._-]+|https:\/\/[a-z0-9.-]+\.blob\.vercel-storage\.com\/.*)$/.test(v))throw error('Choose an uploaded image.');}
  for(const k of ['website','maps','facebook','instagram'])if(c.business[k]){try{if(new URL(c.business[k]).protocol!=='https:')throw 0;}catch{throw error(`${k} must be a full https:// address.`);}}
  if(c.business.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.business.email))throw error('Enter a valid business email.');
  if(c.business.analyticsId&&!/^G-[A-Z0-9]+$/.test(c.business.analyticsId))throw error('Enter a Google Analytics ID in G-XXXXXXXXXX format.');
@@ -43,9 +69,10 @@ const handleExtras=createEnhancements({data,read,save,body,jsonError:error});
 const server=http.createServer(async(req,res)=>{
  const url=new URL(req.url,'http://localhost'), route=decodeURIComponent(url.pathname).replace(/\/$/,'')||'/';
  res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');res.setHeader('X-Frame-Options','DENY');
- res.setHeader('Content-Security-Policy',"default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self' https://www.googletagmanager.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+ res.setHeader('Content-Security-Policy',"default-src 'self'; img-src 'self' data: https:; style-src 'self'; script-src 'self' https://www.googletagmanager.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
  const json=(x,status=200)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(x));};
  try{
+ await syncFromDb();
  if(!isVercel&&![`localhost:${port}`,`127.0.0.1:${port}`].includes(req.headers.host))throw error('Unrecognized host.',403);
  if(!sameOrigin(req))throw error('This request must come from the website.',403);
  if(route==='/api/content'&&req.method==='GET')return json(read());
@@ -56,8 +83,17 @@ const server=http.createServer(async(req,res)=>{
  if(route==='/api/admin/content'&&req.method==='PUT'){const c=validateContent(await body(req));save(file,c);return json({ok:true});}
  if(route==='/api/admin/content'&&req.method==='GET')return json(read());
  if(route==='/api/admin/submissions'&&req.method==='GET'){const p=path.join(data,'submissions.json');return json(fs.existsSync(p)?JSON.parse(fs.readFileSync(p)):[]);}
- if(route==='/api/admin/upload'&&req.method==='POST'){const b=await body(req),buffer=Buffer.from(b.base64||'','base64');if(buffer.length>5*1024*1024)throw error('Choose an image smaller than 5 MB.');let ext;if(buffer.subarray(0,3).equals(Buffer.from([255,216,255])))ext='jpg';else if(buffer.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])))ext='png';else if(buffer.toString('ascii',0,4)==='RIFF'&&buffer.toString('ascii',8,12)==='WEBP')ext='webp';else throw error('Please upload a JPG, PNG or WebP image.');const name=crypto.randomUUID()+'.'+ext;fs.writeFileSync(path.join(pub,'uploads',name),buffer);return json({url:'/uploads/'+name});}
- if(route.startsWith('/api/admin/resumes/')&&req.method==='GET'){const id=route.split('/').at(-1);if(!/^[a-f0-9-]+\.(pdf|docx)$/.test(id))throw error('Not found.',404);const p=path.join(data,'resumes',id);if(!fs.existsSync(p))throw error('Not found.',404);res.writeHead(200,{'Content-Type':'application/octet-stream','Content-Disposition':`attachment; filename="resume.${id.split('.').at(-1)}"`,'Cache-Control':'no-store'});return res.end(fs.readFileSync(p));}
+ if(route==='/api/admin/upload'&&req.method==='POST'){
+  const b=await body(req),buffer=Buffer.from(b.base64||'','base64');if(buffer.length>5*1024*1024)throw error('Choose an image smaller than 5 MB.');let ext;if(buffer.subarray(0,3).equals(Buffer.from([255,216,255])))ext='jpg';else if(buffer.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])))ext='png';else if(buffer.toString('ascii',0,4)==='RIFF'&&buffer.toString('ascii',8,12)==='WEBP')ext='webp';else throw error('Please upload a JPG, PNG or WebP image.');const name=crypto.randomUUID()+'.'+ext;
+  if(process.env.BLOB_READ_WRITE_TOKEN){try{const {put}=await import('@vercel/blob');const blob=await put('uploads/'+name,buffer,{access:'public',contentType:'image/'+(ext==='jpg'?'jpeg':ext)});return json({url:blob.url});}catch(e){console.error('[Blob upload error]',e.message);}}
+  fs.writeFileSync(path.join(pub,'uploads',name),buffer);return json({url:'/uploads/'+name});
+ }
+ if(route.startsWith('/api/admin/resumes/')&&req.method==='GET'){
+  const id=route.split('/').at(-1);if(!/^[a-f0-9-]+\.(pdf|docx)$/.test(id))throw error('Not found.',404);const p=path.join(data,'resumes',id);
+  if(fs.existsSync(p)){res.writeHead(200,{'Content-Type':'application/octet-stream','Content-Disposition':`attachment; filename="resume.${id.split('.').at(-1)}"`,'Cache-Control':'no-store'});return res.end(fs.readFileSync(p));}
+  if(process.env.BLOB_READ_WRITE_TOKEN){try{const {head}=await import('@vercel/blob');const b=await head('resumes/'+id);if(b?.downloadUrl){res.writeHead(302,{Location:b.downloadUrl});return res.end();}}catch{}}
+  throw error('Not found.',404);
+ }
  if(route==='/api/inquiries'&&req.method==='POST'){
  const b=await body(req);if(b.website)throw error('Unable to submit this form.');
  const now=Date.now(),ip=req.socket.remoteAddress,attempts=(rates.get(ip)||[]).filter(t=>now-t<600000);if(attempts.length>=10)throw error('Too many requests. Please try again in a few minutes.',429);attempts.push(now);rates.set(ip,attempts);
@@ -69,7 +105,11 @@ const server=http.createServer(async(req,res)=>{
  if(b.consent!==true)throw error('Please agree to be contacted about your request.');
  const item={id:crypto.randomUUID(),created:new Date().toISOString(),status:'New',type:b.type};
  for(const k of ['name','phone','email','city','contactMethod','who','service','schedule','start','message','experience','availability','certifications','position','callback','callbackTime'])item[k]=safeText(b[k]);
- if(b.resume&&b.type==='career'){const buf=Buffer.from(b.resume.base64||'','base64'),ext=String(b.resume.name).split('.').at(-1).toLowerCase();if(buf.length>5*1024*1024||!buf.length)throw error('Résumé must be smaller than 5 MB.');if(!((ext==='pdf'&&buf.toString('ascii',0,5)==='%PDF-')||(ext==='docx'&&buf[0]===80&&buf[1]===75)))throw error('Please choose a valid PDF or DOCX résumé.');item.resume=item.id+'.'+ext;fs.writeFileSync(path.join(data,'resumes',item.resume),buf,{mode:0o600});}
+ if(b.resume&&b.type==='career'){
+  const buf=Buffer.from(b.resume.base64||'','base64'),ext=String(b.resume.name).split('.').at(-1).toLowerCase();if(buf.length>5*1024*1024||!buf.length)throw error('Résumé must be smaller than 5 MB.');if(!((ext==='pdf'&&buf.toString('ascii',0,5)==='%PDF-')||(ext==='docx'&&buf[0]===80&&buf[1]===75)))throw error('Please choose a valid PDF or DOCX résumé.');item.resume=item.id+'.'+ext;
+  fs.writeFileSync(path.join(data,'resumes',item.resume),buf,{mode:0o600});
+  if(process.env.BLOB_READ_WRITE_TOKEN){import('@vercel/blob').then(({put})=>put('resumes/'+item.resume,buf,{access:'public'})).catch(e=>console.error('[Resume Blob error]',e.message));}
+ }
  const p=path.join(data,'submissions.json'),items=fs.existsSync(p)?JSON.parse(fs.readFileSync(p)):[];leads.prepare(item);items.unshift(item);save(p,items);void leads.processQueue().catch(()=>{});return json({ok:true,reference:item.id.slice(0,8)},201);
  }
  if(route.startsWith('/api/'))throw error('Not found.',404);

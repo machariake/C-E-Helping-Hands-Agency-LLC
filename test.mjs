@@ -6,7 +6,7 @@ import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
 const root=path.dirname(fileURLToPath(import.meta.url));
 const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'ce-site-test-'));
-for(const name of ['server.mjs','enhancements.mjs','leads.mjs','auth.mjs','seed.json','public'])fs.cpSync(path.join(root,name),path.join(tmp,name),{recursive:true});
+for(const name of ['server.mjs','enhancements.mjs','leads.mjs','auth.mjs','db.mjs','seed.json','public'])fs.cpSync(path.join(root,name),path.join(tmp,name),{recursive:true});
 const port=43879,base=`http://localhost:${port}`,child=spawn(process.execPath,[path.join(tmp,'server.mjs')],{env:{...process.env,PORT:String(port)},stdio:'pipe'});
 let passed=0;
 const check=(title,fn)=>fn().then(()=>{passed++;console.log('PASS '+title);});

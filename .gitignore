@@ -11,3 +11,5 @@ node_modules/
 GitHub upload/
 Backups/
 Previews/
+.vercel
+.env*
