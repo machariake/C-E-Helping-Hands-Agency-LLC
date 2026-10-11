@@ -15,20 +15,22 @@ const key=(process.env.ADMIN_KEY||(fs.existsSync(keyfile)?fs.readFileSync(keyfil
 if(!fs.existsSync(keyfile)) fs.writeFileSync(keyfile,key,{mode:0o600});
 const port=Number(process.env.PORT||4173), host='127.0.0.1';
 const read=()=>JSON.parse(fs.readFileSync(file,'utf8'));
-const save=(p,value)=>{
+const save=async(p,value)=>{
  fs.writeFileSync(p+'.tmp',JSON.stringify(value,null,2));fs.renameSync(p+'.tmp',p);
  const dbUrl=process.env.DATABASE_URL||process.env.POSTGRES_URL;if(!dbUrl)return;
- import('@neondatabase/serverless').then(({neon})=>{
+ try{
+  const {neon}=await import('@neondatabase/serverless');
   const sql=neon(dbUrl);
-  if(p===file)return sql`INSERT INTO ce_content (key, data, updated_at) VALUES ('main', ${JSON.stringify(value)}::jsonb, NOW()) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`;
-  if(p===path.join(data,'submissions.json'))return Promise.all((value||[]).map(item=>sql`INSERT INTO ce_submissions (id, data, created_at) VALUES (${item.id}, ${JSON.stringify(item)}::jsonb, ${item.created||new Date().toISOString()}) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data`));
-  if(p===path.join(data,'notifications.json'))return sql`INSERT INTO ce_settings (key, data, updated_at) VALUES ('notifications', ${JSON.stringify(value)}::jsonb, NOW()) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`;
- }).catch(err=>console.error('[DB Save Error]',err.message));
+  if(p===file)await sql`INSERT INTO ce_content (key, data, updated_at) VALUES ('main', ${JSON.stringify(value)}::jsonb, NOW()) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`;
+  else if(p===path.join(data,'submissions.json'))await Promise.all((value||[]).map(item=>sql`INSERT INTO ce_submissions (id, data, created_at) VALUES (${item.id}, ${JSON.stringify(item)}::jsonb, ${item.created||new Date().toISOString()}) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data`));
+  else if(p===path.join(data,'notifications.json'))await sql`INSERT INTO ce_settings (key, data, updated_at) VALUES ('notifications', ${JSON.stringify(value)}::jsonb, NOW()) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`;
+  else if(p===path.join(data,'account.json'))await sql`INSERT INTO ce_settings (key, data, updated_at) VALUES ('account', ${JSON.stringify(value)}::jsonb, NOW()) ON CONFLICT (key) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`;
+ }catch(err){console.error('[DB Save Error]',err.message);}
 };
 let syncedFromNeon=false;
 async function syncFromDb(){
- if(syncedFromNeon)return;
  const dbUrl=process.env.DATABASE_URL||process.env.POSTGRES_URL;if(!dbUrl)return;
+ if(syncedFromNeon)return;
  try{
   const {neon}=await import('@neondatabase/serverless');
   const sql=neon(dbUrl);
@@ -38,6 +40,8 @@ async function syncFromDb(){
   if(subRows.length>0)fs.writeFileSync(path.join(data,'submissions.json'),JSON.stringify(subRows.map(r=>r.data),null,2));
   const setRows=await sql`SELECT data FROM ce_settings WHERE key = 'notifications'`;
   if(setRows.length>0&&setRows[0].data)fs.writeFileSync(path.join(data,'notifications.json'),JSON.stringify(setRows[0].data,null,2));
+  const accRows=await sql`SELECT data FROM ce_settings WHERE key = 'account'`;
+  if(accRows.length>0&&accRows[0].data)fs.writeFileSync(path.join(data,'account.json'),JSON.stringify(accRows[0].data,null,2));
   syncedFromNeon=true;
  }catch(err){console.error('[DB Sync Error]',err.message);}
 }
